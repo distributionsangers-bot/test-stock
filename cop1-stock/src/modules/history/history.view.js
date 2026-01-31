@@ -4,12 +4,28 @@
 
 import { state } from '../../core/state.js';
 import { downloadHistoryCSV, getOpStyle } from '../../services/utils.js';
-import { setHistFilter } from '../../services/history.js';
+import { setHistFilter, getHistory, processHistoryGroups } from '../../services/history.js';
 import { createIcons, icons } from 'lucide';
+
+// Local state for pagination
+let localState = {
+    page: 1,
+    limit: 20,
+    total: 0
+};
 
 // Expose fonctions globalement
 window.downloadHistoryCSV = downloadHistoryCSV;
-window.setHistFilter = setHistFilter;
+window.setHistFilter = async (key, val) => {
+    state.histFilter[key] = val;
+    // Reset page on filter change
+    localState.page = 1;
+    await loadHistoryData();
+};
+window.changeHistoryPage = async (newPage) => {
+    localState.page = newPage;
+    await loadHistoryData();
+};
 
 export function getHistoryListHTML() {
     if (!state.groupedHistory || state.groupedHistory.length === 0) {
@@ -121,13 +137,13 @@ export function renderHist(div) {
                         ${months.map((m, i) => `<option value="${i + 1}" ${state.histFilter.month === (i + 1).toString() ? 'selected' : ''}>${m}</option>`).join('')}
                     </select>
                 </div>
-                <div class="flex gap-2 items-center mb-3">
-                    <div class="relative flex-1">
+                <div class="flex flex-col sm:flex-row gap-2 items-center mb-3">
+                    <div class="relative w-full sm:flex-1">
                         <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                         <input type="date" onchange="setHistFilter('dateFrom', this.value)" value="${state.histFilter.dateFrom}" class="w-full pl-10 pr-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none">
                     </div>
-                    <span class="text-slate-300 font-bold">→</span>
-                    <div class="relative flex-1">
+                    <span class="text-slate-300 font-bold rotate-90 sm:rotate-0">→</span>
+                    <div class="relative w-full sm:flex-1">
                         <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                         <input type="date" onchange="setHistFilter('dateTo', this.value)" value="${state.histFilter.dateTo}" class="w-full pl-10 pr-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none">
                     </div>
@@ -139,9 +155,92 @@ export function renderHist(div) {
             </div>
 
             <div id="history-results-container" class="space-y-4">
-                ${getHistoryListHTML()}
+                <div class="text-center py-12">
+                     <div class="animate-spin w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                     <p class="text-slate-400 font-bold animate-pulse">Chargement de l'historique...</p>
+                </div>
             </div>
+            
+            <!-- PAGINATION -->
+            <div id="history-pagination" class="mt-6"></div>
         </div>`;
+
+    // Initial Load
+    loadHistoryData();
 
     createIcons({ icons });
 }
+
+export async function loadHistoryData() {
+    const container = document.getElementById('history-results-container');
+    const paginationContainer = document.getElementById('history-pagination');
+
+    if (!container) return;
+
+    // Show loader if strictly needed, but usually we just replace content
+    container.style.opacity = '0.5';
+
+    // 1. Fetch Data
+    const { data, count, error } = await getHistory(localState.page, localState.limit, state.histFilter);
+    container.style.opacity = '1';
+
+    if (error) {
+        container.innerHTML = `
+            <div class="text-center py-16 bg-white rounded-2xl border border-red-100">
+                <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-red-500"></i>
+                </div>
+                <p class="text-red-500 font-bold">Erreur de chargement</p>
+                <p class="text-xs text-red-300 mt-1">Veuillez réessayer</p>
+            </div>`;
+        createIcons({ icons });
+        return;
+    }
+
+    localState.total = count || 0;
+    const totalPages = Math.ceil(localState.total / localState.limit);
+
+    // 2. Process Grouping
+    // We update state.groupedHistory for consistency with existing helpers
+    processHistoryGroups(data || []);
+
+    // 3. Render List
+    container.innerHTML = getHistoryListHTML();
+
+    // 4. Render Pagination
+    renderPagination(paginationContainer, totalPages);
+
+    createIcons({ icons });
+}
+
+function renderPagination(container, totalPages) {
+    if (!container) return;
+    if (localState.total === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const start = (localState.page - 1) * localState.limit + 1;
+    const end = Math.min(localState.page * localState.limit, localState.total);
+
+    container.innerHTML = `
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xs font-semibold text-slate-400">
+                Affichage <span class="text-slate-700 font-bold">${start}-${end}</span> sur <span class="text-slate-700 font-bold">${localState.total}</span> opérations
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="changeHistoryPage(${localState.page - 1})" ${localState.page === 1 ? 'disabled' : ''} 
+                    class="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition hover:shadow-sm">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <span class="text-sm font-bold text-slate-700 min-w-[4rem] text-center bg-slate-50 py-2 rounded-lg border border-slate-100">${localState.page} / ${totalPages || 1}</span>
+                <button onclick="changeHistoryPage(${localState.page + 1})" ${localState.page >= totalPages ? 'disabled' : ''} 
+                    class="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition hover:shadow-sm">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    createIcons({ icons, root: container });
+}
+

@@ -14,6 +14,7 @@ window.closeModal = closeModal;
 window.closeQuickAddModal = closeQuickAddModal;
 window.openModal = openModal;
 window.openQuickAddModal = openQuickAddModal;
+window.renderModal = renderModal;
 
 export function openModal(m, id) {
     state.modalOpen = true;

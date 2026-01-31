@@ -13,6 +13,8 @@ window.restoreBackup = restoreBackup;
 window.deleteBackup = deleteBackup;
 window.addToSettingList = addToSettingList;
 window.removeFromSettingList = removeFromSettingList;
+window.closeSettingsModal = closeSettingsModal;
+window.openSettingsModal = openSettingsModal;
 
 export function openSettingsModal() {
     state.settingsModalOpen = true;

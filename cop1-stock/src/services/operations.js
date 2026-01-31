@@ -63,6 +63,7 @@ export async function validateOp() {
     const allowedList = [
         ...state.foodProducts,
         ...state.hygieneProducts,
+        ...state.clothingProducts,
         ...state.items.map(i => i.name) // On autorise aussi ce qui est déjà en stock (pour pouvoir sortir les vieux produits)
     ];
 

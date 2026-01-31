@@ -45,8 +45,8 @@ export const state = {
 
     // Filtres Historique
     histFilter: {
-        year: '',
-        month: '', // '1' à '12'
+        year: new Date().getFullYear().toString(),
+        month: (new Date().getMonth() + 1).toString(), // '1' à '12'
         dateFrom: '',
         dateTo: '',
         search: ''

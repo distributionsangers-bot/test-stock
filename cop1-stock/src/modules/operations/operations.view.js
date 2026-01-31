@@ -18,7 +18,7 @@ window.validateOp = validateOp;
 function getMainMenuHTML() {
     return `
         <div class="animate-fade-in pb-10 max-w-4xl mx-auto">
-            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 mb-6 shadow-2xl shadow-purple-500/20">
+            <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 mb-6 shadow-md cursor-default">
                 <div class="relative text-white">
                     <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
                         <i data-lucide="arrow-right-left" class="w-7 h-7"></i> Opérations
@@ -127,12 +127,19 @@ function getCartFormHTML() {
 
     const cartItems = state.opCart.map(line => {
         const isOut = line.type === 'OUT';
+
+        let catClass = 'bg-slate-50 text-slate-700';
+        if (line.mainCategory === 'ALIMENTAIRE') catClass = 'bg-green-50 text-green-700';
+        else if (line.mainCategory === 'HYGIENE') catClass = 'bg-purple-50 text-purple-700';
+        else if (line.mainCategory === 'VETEMENTS') catClass = 'bg-indigo-50 text-indigo-700';
+
         return `<div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                    <select onchange="updateOpLine(${line.id},'mainCategory',this.value)" class="text-xs font-bold ${line.mainCategory === 'ALIMENTAIRE' ? 'bg-green-50 text-green-700' : 'bg-purple-50 text-purple-700'} border px-2 py-1 rounded-lg">
+                    <select onchange="updateOpLine(${line.id},'mainCategory',this.value)" class="text-xs font-bold ${catClass} border px-2 py-1 rounded-lg">
                         <option value="ALIMENTAIRE" ${line.mainCategory === 'ALIMENTAIRE' ? 'selected' : ''}>🍎 ALIM</option>
                         <option value="HYGIENE" ${line.mainCategory === 'HYGIENE' ? 'selected' : ''}>🧴 HYG</option>
+                        <option value="VETEMENTS" ${line.mainCategory === 'VETEMENTS' ? 'selected' : ''}>👕 VET</option>
                     </select>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-lg ${isOut ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">${isOut ? '↑ SORTIE' : '↓ ENTRÉE'}</span>
                 </div>
@@ -150,9 +157,28 @@ function getCartFormHTML() {
         <p class="text-slate-400 font-medium">Panier vide</p>
     </div>`;
 
-    const locInput = (state.opMode === 'DISTRIB' || state.opMode === 'COLLECTE') ?
-        `<div class="relative"><i data-lucide="map-pin" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${c.text}"></i><input type="text" value="${state.opInfo}" oninput="state.opInfo=this.value" class="w-full pl-12 pr-4 py-3 ${c.bg} rounded-xl border-2 font-bold" placeholder="Lieu de l'opération..."></div>` :
-        `<input type="text" value="${state.opInfo}" onchange="state.opInfo=this.value" class="w-full p-3 bg-slate-50 rounded-xl border font-medium" placeholder="Informations complémentaires...">`;
+    let locInput = '';
+    if (state.opMode === 'DISTRIB' || state.opMode === 'COLLECTE') {
+        const listName = state.opMode === 'DISTRIB' ? 'distribLocations' : 'collectLocations';
+        const list = state[listName] || [];
+        const listId = 'op-loc-list';
+        const inputId = 'op-loc-input';
+
+        const optionsHTML = list.map(l => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${l.replace(/'/g, "\\'")}', false, 0, false)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${l}</div>`).join('');
+
+        locInput = `
+        <div class="relative custom-select-container">
+            <i data-lucide="map-pin" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${c.text} z-10 w-5 h-5"></i>
+            <input id="${inputId}" type="text" value="${state.opInfo}" 
+                onfocus="window.openCustomSelect('${listId}')" 
+                oninput="state.opInfo=this.value; window.openCustomSelect('${listId}'); window.filterCustomSelect('${listId}', this.value)" 
+                class="w-full pl-12 pr-4 py-3 ${c.bg} rounded-xl border-2 font-bold focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all" 
+                placeholder="Lieu de l'opération..." autocomplete="off">
+            <div id="${listId}" class="custom-dropdown-list hidden absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2">${optionsHTML}</div>
+        </div>`;
+    } else {
+        locInput = `<input type="text" value="${state.opInfo}" oninput="state.opInfo=this.value" class="w-full p-3 bg-slate-50 rounded-xl border font-medium" placeholder="Informations complémentaires...">`;
+    }
 
     return `<div class="animate-fade-in max-w-lg mx-auto pb-10">
         <div class="bg-white rounded-3xl shadow-lg ${c.shadow} border-t-4 ${c.border} p-5 mb-4">
