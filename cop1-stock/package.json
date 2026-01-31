@@ -1,0 +1,21 @@
+{
+  "name": "cop1-stock",
+  "version": "2.0.0",
+  "description": "Plateforme de gestion de stock pour COP1 Angers",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "lucide": "^0.300.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.0.0"
+  }
+}

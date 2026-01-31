@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- CSP: Security Policy (updated for Vite dev) -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' https: data:; connect-src 'self' https: wss:;">
+
+    <!-- Social Meta Tags -->
+    <meta property="og:title" content="COP1 Angers - Gestion Stock">
+    <meta property="og:description" content="Plateforme de gestion de stock pour l'association COP1 Angers.">
+    <meta property="og:image" content="/logo.png">
+
+    <title>COP1 Angers - Gestion Stock</title>
+    <link rel="icon" type="image/png" href="/logo.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="text-slate-800 antialiased selection:bg-brand-100 selection:text-brand-900 bg-[#F8FAFC]">
+
+    <!-- Skip Link for Keyboard Users -->
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
+    <!-- Toast Container - positioned below mobile header -->
+    <div id="toast-container"
+        class="fixed top-20 md:top-4 right-4 z-[9998] flex flex-col items-end gap-2 pointer-events-none" role="status"
+        aria-live="polite"></div>
+
+    <!-- App Root -->
+    <div id="app" class="h-full w-full relative" role="main"></div>
+
+    <!-- Global Loader (visible au démarrage) -->
+    <div id="global-loader"
+        class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+        <img src="/logo.png" class="w-20 h-20 mb-6 animate-pulse">
+        <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
+        <p class="mt-4 text-sm text-slate-400 font-medium">Chargement...</p>
+    </div>
+
+    <!-- Modal Containers (Critical IDs) -->
+    <div id="modal-root"></div>
+    <div id="quick-add-root"></div>
+    <div id="settings-modal-root"></div>
+
+    <!-- Main Module Script - Vite Entry Point -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
