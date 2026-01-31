@@ -98,6 +98,7 @@ window.onerror = (msg, url, lineNo, columnNo, error) => {
 window.renderApp = renderApp;
 window.renderLogin = renderLogin;
 window.setView = setView;
+window.state = state;
 
 // Start the application
 window.onload = initApp;

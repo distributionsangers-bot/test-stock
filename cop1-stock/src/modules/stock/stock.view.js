@@ -220,7 +220,7 @@ export function renderList(div) {
                  <div class="hidden md:block bg-gradient-to-br from-slate-800 to-slate-900 p-5 md:p-6 rounded-[2rem] shadow-lg relative overflow-hidden group">
                      <div class="relative z-10 text-white">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Total Produits</div>
-                        <div class="text-4xl md:text-5xl font-black group-hover:scale-105 transition-transform origin-left duration-300">${alim + hyg}</div>
+                        <div class="text-4xl md:text-5xl font-black group-hover:scale-105 transition-transform origin-left duration-300">${alim + hyg + vet}</div>
                     </div>
                     <i data-lucide="package" class="absolute right-6 bottom-6 w-8 h-8 text-slate-700 group-hover:text-slate-600 transition-colors"></i>
                 </div>

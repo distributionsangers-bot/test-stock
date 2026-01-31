@@ -146,7 +146,27 @@ function getCartFormHTML() {
                 <button onclick="removeOpLine(${line.id})" class="text-slate-300 hover:text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
             </div>
             <div class="flex gap-2">
-                <input type="text" value="${line.name}" oninput="updateOpLine(${line.id},'name',this.value,true)" class="flex-1 p-3 bg-slate-50 rounded-xl border font-medium" placeholder="Nom du produit...">
+                <div class="flex-1 relative custom-select-container">
+                    ${(() => {
+                const listId = `op-list-${line.id}`;
+                const inputId = `op-input-${line.id}`;
+                let list = [];
+                if (line.mainCategory === 'ALIMENTAIRE') list = state.foodProducts;
+                else if (line.mainCategory === 'HYGIENE') list = state.hygieneProducts;
+                else if (line.mainCategory === 'VETEMENTS') list = state.clothingProducts;
+
+                const optionsHTML = list.map(s => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${s.replace(/'/g, "\\'")}', true, ${line.id}, false)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${s}</div>`).join('');
+
+                return `
+                        <input id="${inputId}" type="text" value="${line.name}" 
+                            onfocus="window.openCustomSelect('${listId}')" 
+                            oninput="window.updateOpLine(${line.id},'name',this.value,true); window.openCustomSelect('${listId}'); window.filterCustomSelect('${listId}', this.value)" 
+                            class="w-full p-3 bg-slate-50 rounded-xl border font-medium focus:border-brand-500 outline-none" 
+                            placeholder="Nom du produit..." autocomplete="off">
+                        <div id="${listId}" class="custom-dropdown-list hidden absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2">${optionsHTML}</div>
+                        `;
+            })()}
+                </div>
                 <input type="number" value="${line.quantity}" onchange="updateOpLine(${line.id},'quantity',this.value)" class="w-20 p-3 bg-slate-50 rounded-xl border text-center font-bold" placeholder="Qté">
             </div>
         </div>`;
