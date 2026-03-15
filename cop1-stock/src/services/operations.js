@@ -5,7 +5,7 @@
 import { supabaseClient } from './supabase.js';
 import { state } from '../core/state.js';
 import { loadData } from './stock.js';
-import { showToast } from './utils.js';
+import { showToast, showConfirm, getOpStyle } from './utils.js';
 
 export async function setOpMode(m) {
     state.opMode = m;
@@ -76,6 +76,33 @@ export async function validateOp() {
         }
     }
     // ---------------------------------
+
+    // --- CONFIRMATION AVANT VALIDATION ---
+    const style = getOpStyle(state.opMode);
+    const totalItems = state.opCart.filter(l => l.name && l.quantity).length;
+    const totalQty = state.opCart.reduce((acc, l) => acc + (Number(l.quantity) || 0), 0);
+    const location = state.opInfo ? ` à "${state.opInfo}"` : '';
+
+    const confirmMessage = `Confirmer l'opération ${style.label}${location} ?\n\n` +
+        `📦 ${totalItems} produit(s)\n` +
+        `📊 ${totalQty} unité(s) au total`;
+
+    showConfirm(
+        confirmMessage,
+        async () => {
+            await executeValidation();
+        },
+        {
+            title: `Valider ${style.label} ?`,
+            confirmText: "Confirmer",
+            cancelText: "Annuler",
+            type: "info"
+        }
+    );
+}
+
+// --- EXÉCUTION EFFECTIVE DE L'OPÉRATION ---
+async function executeValidation() {
 
     // On bloque le bouton visuellement
     const btn = document.getElementById('btn-val-op');

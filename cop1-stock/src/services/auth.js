@@ -20,6 +20,10 @@ export async function handleAuth(e) {
 
     try {
         if (state.isAuthMode === 'register') {
+            // Validate password strength before proceeding
+            if (typeof window.checkPasswordStrengthValid === 'function' && !window.checkPasswordStrengthValid()) {
+                throw new Error("Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre");
+            }
             if (code !== ASSOCIATION_CODE) throw new Error("Code incorrect");
             const { error } = await supabaseClient.auth.signUp({ email, password });
             if (error) throw error;

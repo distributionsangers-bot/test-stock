@@ -1,31 +1,87 @@
 // ==================================================================================
-// VUE HISTORIQUE - VERSION NPM LUCIDE
+// VUE HISTORIQUE - VERSION REFACTORISÉE
 // ==================================================================================
 
 import { state } from '../../core/state.js';
-import { downloadHistoryCSV, getOpStyle } from '../../services/utils.js';
-import { setHistFilter, getHistory, processHistoryGroups } from '../../services/history.js';
+import { downloadHistoryCSV, getOpStyle, escapeHtml } from '../../services/utils.js';
+import { getHistory, processHistoryGroups, countActiveFilters, resetHistFilters } from '../../services/history.js';
 import { createIcons, icons } from 'lucide';
 
-// Local state for pagination
+// État local pour la pagination
 let localState = {
     page: 1,
     limit: 20,
     total: 0
 };
 
+// Debounce timer
+let searchDebounceTimer = null;
+
 // Expose fonctions globalement
 window.downloadHistoryCSV = downloadHistoryCSV;
+
 window.setHistFilter = async (key, val) => {
     state.histFilter[key] = val;
+
+    // Si on change dateFrom ou dateTo, on désactive year/month
+    if (key === 'dateFrom' || key === 'dateTo') {
+        if (val) {
+            // Ne pas réinitialiser explicitement pour garder l'UX fluide
+            // Les filtres year/month seront ignorés par la logique de priorité
+        }
+    }
+
     // Reset page on filter change
     localState.page = 1;
+    updateFilterIndicators();
     await loadHistoryData();
 };
+
+window.setHistFilterDebounced = (key, val) => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(async () => {
+        await window.setHistFilter(key, val);
+    }, 300);
+};
+
+window.resetAllFilters = async () => {
+    resetHistFilters();
+    localState.page = 1;
+    updateFilterIndicators();
+    await loadHistoryData();
+    // Re-render les selects et inputs
+    const div = document.getElementById('history-main-container');
+    if (div) renderHist(div);
+};
+
 window.changeHistoryPage = async (newPage) => {
     localState.page = newPage;
     await loadHistoryData();
 };
+
+window.clearSingleFilter = async (key) => {
+    state.histFilter[key] = '';
+    localState.page = 1;
+    updateFilterIndicators();
+    await loadHistoryData();
+    // Re-render pour mettre à jour les inputs
+    const div = document.getElementById('history-main-container');
+    if (div) renderHist(div);
+};
+
+function updateFilterIndicators() {
+    const count = countActiveFilters(state.histFilter);
+    const badge = document.getElementById('filter-count-badge');
+    const resetBtn = document.getElementById('reset-filters-btn');
+
+    if (badge) {
+        badge.textContent = count;
+        badge.classList.toggle('hidden', count === 0);
+    }
+    if (resetBtn) {
+        resetBtn.classList.toggle('hidden', count === 0);
+    }
+}
 
 export function getHistoryListHTML() {
     if (!state.groupedHistory || state.groupedHistory.length === 0) {
@@ -55,7 +111,7 @@ export function getHistoryListHTML() {
 
         const itemsHTML = group.items.map(i => `
             <div class="px-4 py-2.5 flex justify-between items-center hover:bg-slate-50 transition">
-                <span class="text-sm text-slate-700 font-medium">${i.item_name}</span>
+                <span class="text-sm text-slate-700 font-medium">${escapeHtml(i.item_name)}</span>
                 <span class="font-mono font-bold text-sm px-2 py-0.5 rounded-lg ${i.change_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}">
                     ${i.change_qty > 0 ? '+' : ''}${i.change_qty}
                 </span>
@@ -73,7 +129,7 @@ export function getHistoryListHTML() {
                         <div class="font-bold text-sm text-slate-900">${style.label}</div>
                         <div class="text-xs text-slate-500 flex items-center gap-1">
                             <i data-lucide="map-pin" class="w-3 h-3"></i>
-                            ${group.location || 'Non spécifié'}
+                            ${escapeHtml(group.location) || 'Non spécifié'}
                         </div>
                     </div>
                 </div>
@@ -89,11 +145,94 @@ export function getHistoryListHTML() {
     }).join('');
 }
 
+function getActiveFiltersHTML() {
+    const f = state.histFilter;
+    const hasDateRange = f.dateFrom || f.dateTo;
+    const tags = [];
+
+    if (f.search && f.search.trim()) {
+        tags.push(`
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
+                <i data-lucide="search" class="w-3 h-3"></i>
+                "${escapeHtml(f.search)}"
+                <button onclick="clearSingleFilter('search')" class="ml-1 hover:bg-blue-100 rounded-full p-0.5 transition">
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+            </span>
+        `);
+    }
+
+    if (hasDateRange) {
+        if (f.dateFrom) {
+            tags.push(`
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold">
+                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                    Depuis ${f.dateFrom}
+                    <button onclick="clearSingleFilter('dateFrom')" class="ml-1 hover:bg-purple-100 rounded-full p-0.5 transition">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </span>
+            `);
+        }
+        if (f.dateTo) {
+            tags.push(`
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold">
+                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                    Jusqu'au ${f.dateTo}
+                    <button onclick="clearSingleFilter('dateTo')" class="ml-1 hover:bg-purple-100 rounded-full p-0.5 transition">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </span>
+            `);
+        }
+    } else {
+        if (f.year) {
+            tags.push(`
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">
+                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                    Année ${f.year}
+                    <button onclick="clearSingleFilter('year')" class="ml-1 hover:bg-amber-100 rounded-full p-0.5 transition">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </span>
+            `);
+        }
+        if (f.month) {
+            const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            tags.push(`
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">
+                    <i data-lucide="calendar" class="w-3 h-3"></i>
+                    ${months[parseInt(f.month) - 1] || f.month}
+                    <button onclick="clearSingleFilter('month')" class="ml-1 hover:bg-amber-100 rounded-full p-0.5 transition">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </span>
+            `);
+        }
+    }
+
+    return tags.length > 0 ? `
+        <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+            ${tags.join('')}
+        </div>
+    ` : '';
+}
+
 export function renderHist(div) {
+    div.id = 'history-main-container';
+
     const yearsSet = new Set([2024, new Date().getFullYear()]);
     state.history.forEach(h => yearsSet.add(new Date(h.created_at).getFullYear()));
     const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
-    const yearOptions = sortedYears.map(y => `<option value="${y}" ${state.histFilter.year === y.toString() ? 'selected' : ''}>${y}</option>`).join('');
+
+    const f = state.histFilter;
+    const hasDateRange = f.dateFrom || f.dateTo;
+    const activeCount = countActiveFilters(f);
+
+    const yearOptions = sortedYears.map(y =>
+        `<option value="${y}" ${f.year === y.toString() ? 'selected' : ''}>${y}</option>`
+    ).join('');
+
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
     div.innerHTML = `
@@ -122,36 +261,64 @@ export function renderHist(div) {
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
-                <div class="flex items-center gap-2 mb-3">
-                    <i data-lucide="filter" class="w-4 h-4 text-slate-400"></i>
-                    <span class="text-xs font-bold text-slate-400 uppercase">Filtres</span>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4 text-slate-400"></i>
+                        <span class="text-xs font-bold text-slate-400 uppercase">Filtres</span>
+                        <span id="filter-count-badge" class="w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ${activeCount === 0 ? 'hidden' : ''}">${activeCount}</span>
+                    </div>
+                    <button id="reset-filters-btn" onclick="resetAllFilters()" class="text-xs font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${activeCount === 0 ? 'hidden' : ''}">
+                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                        Réinitialiser
+                    </button>
                 </div>
+                
+                <!-- Période rapide (Année/Mois) - désactivé si dates précises -->
                 <div class="flex gap-2 mb-3">
-                    <select onchange="setHistFilter('year', this.value)" class="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm outline-none">
-                        <option value="">Année</option>
+                    <select onchange="setHistFilter('year', this.value)" class="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm outline-none min-w-0 ${hasDateRange ? 'opacity-50 cursor-not-allowed' : ''}" ${hasDateRange ? 'disabled' : ''}>
+                        <option value="">Toutes les années</option>
                         ${yearOptions}
                     </select>
-                    <select onchange="setHistFilter('month', this.value)" class="flex-[2] p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm outline-none">
+                    <select onchange="setHistFilter('month', this.value)" class="flex-[2] p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm outline-none min-w-0 ${hasDateRange ? 'opacity-50 cursor-not-allowed' : ''}" ${hasDateRange ? 'disabled' : ''}>
                         <option value="">Tous les mois</option>
-                        ${months.map((m, i) => `<option value="${i + 1}" ${state.histFilter.month === (i + 1).toString() ? 'selected' : ''}>${m}</option>`).join('')}
+                        ${months.map((m, i) => `<option value="${i + 1}" ${f.month === (i + 1).toString() ? 'selected' : ''}>${m}</option>`).join('')}
                     </select>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-2 items-center mb-3">
-                    <div class="relative w-full sm:flex-1">
-                        <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                        <input type="date" onchange="setHistFilter('dateFrom', this.value)" value="${state.histFilter.dateFrom}" class="w-full pl-10 pr-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none">
+                
+                <!-- Dates précises -->
+                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-3 overflow-hidden">
+                    <div class="relative flex-1 min-w-0">
+                        <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
+                        <input type="date" onchange="setHistFilter('dateFrom', this.value)" value="${f.dateFrom}" 
+                            class="w-full max-w-full pl-10 pr-2 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none box-border ${f.dateFrom ? 'border-purple-300 bg-purple-50' : ''}">
                     </div>
-                    <span class="text-slate-300 font-bold rotate-90 sm:rotate-0">→</span>
-                    <div class="relative w-full sm:flex-1">
-                        <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                        <input type="date" onchange="setHistFilter('dateTo', this.value)" value="${state.histFilter.dateTo}" class="w-full pl-10 pr-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none">
+                    <span class="text-slate-300 font-bold text-sm text-center hidden sm:block flex-shrink-0">→</span>
+                    <div class="relative flex-1 min-w-0">
+                        <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10"></i>
+                        <input type="date" onchange="setHistFilter('dateTo', this.value)" value="${f.dateTo}" 
+                            class="w-full max-w-full pl-10 pr-2 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium outline-none box-border ${f.dateTo ? 'border-purple-300 bg-purple-50' : ''}">
                     </div>
                 </div>
+                
+                ${hasDateRange ? `
+                    <div class="text-xs text-purple-600 bg-purple-50 px-3 py-2 rounded-lg mb-3 flex items-center gap-2">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                        Les filtres Année/Mois sont désactivés quand des dates précises sont utilisées
+                    </div>
+                ` : ''}
+                
+                <!-- Recherche avec debounce -->
                 <div class="relative">
                     <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
-                    <input type="text" placeholder="Rechercher produit, lieu..." oninput="setHistFilter('search', this.value)" value="${state.histFilter.search}" class="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 font-medium outline-none">
+                    <input type="text" placeholder="Rechercher produit, lieu, utilisateur..." 
+                        oninput="setHistFilterDebounced('search', this.value)" 
+                        value="${f.search}" 
+                        class="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 font-medium outline-none ${f.search ? 'border-blue-300 bg-blue-50' : ''}">
                 </div>
+                
+                <!-- Tags des filtres actifs -->
+                ${getActiveFiltersHTML()}
             </div>
 
             <div id="history-results-container" class="space-y-4">
@@ -177,10 +344,9 @@ export async function loadHistoryData() {
 
     if (!container) return;
 
-    // Show loader if strictly needed, but usually we just replace content
     container.style.opacity = '0.5';
 
-    // 1. Fetch Data
+    // Fetch Data
     const { data, count, error } = await getHistory(localState.page, localState.limit, state.histFilter);
     container.style.opacity = '1';
 
@@ -200,14 +366,13 @@ export async function loadHistoryData() {
     localState.total = count || 0;
     const totalPages = Math.ceil(localState.total / localState.limit);
 
-    // 2. Process Grouping
-    // We update state.groupedHistory for consistency with existing helpers
+    // Process Grouping (no filtering, just grouping)
     processHistoryGroups(data || []);
 
-    // 3. Render List
+    // Render List
     container.innerHTML = getHistoryListHTML();
 
-    // 4. Render Pagination
+    // Render Pagination
     renderPagination(paginationContainer, totalPages);
 
     createIcons({ icons });
@@ -243,4 +408,3 @@ function renderPagination(container, totalPages) {
     `;
     createIcons({ icons, root: container });
 }
-

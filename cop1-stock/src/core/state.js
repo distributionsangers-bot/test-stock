@@ -42,11 +42,12 @@ export const state = {
 
     // Auth
     isAuthMode: 'login',
+    isPasswordRecoveryMode: false,
 
     // Filtres Historique
     histFilter: {
-        year: new Date().getFullYear().toString(),
-        month: (new Date().getMonth() + 1).toString(), // '1' à '12'
+        year: '',
+        month: '',
         dateFrom: '',
         dateTo: '',
         search: ''

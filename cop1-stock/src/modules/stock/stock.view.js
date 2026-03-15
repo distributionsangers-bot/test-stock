@@ -3,7 +3,7 @@
 // ==================================================================================
 
 import { state } from '../../core/state.js';
-import { downloadStockCSV } from '../../services/utils.js';
+import { downloadStockCSV, escapeHtml } from '../../services/utils.js';
 import { openModal, openQuickAddModal } from '../modals/item-modal.view.js';
 import { createIcons, icons } from 'lucide';
 
@@ -108,7 +108,7 @@ export function getStockListHTML() {
 
             html += `
             <div class="mb-6">
-                <div class="inline-block px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase mb-3 ml-1 border border-slate-200">${subCat}</div>
+                <div class="inline-block px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase mb-3 ml-1 border border-slate-200">${escapeHtml(subCat)}</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
 
             products.sort((a, b) => a.name.localeCompare(b.name)).forEach(i => {
@@ -117,8 +117,8 @@ export function getStockListHTML() {
                 <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 group flex flex-col">
                     <div class="flex items-start justify-between gap-3 mb-2">
                         <div class="min-w-0">
-                            <h4 class="font-bold text-slate-900 truncate text-base">${i.name}</h4>
-                            ${i.remarks ? `<p class="text-xs text-slate-400 truncate mt-0.5">${i.remarks}</p>` : ''}
+                            <h4 class="font-bold text-slate-900 truncate text-base">${escapeHtml(i.name)}</h4>
+                            ${i.remarks ? `<p class="text-xs text-slate-400 truncate mt-0.5">${escapeHtml(i.remarks)}</p>` : ''}
                         </div>
                         <div class="text-center px-2 py-1.5 rounded-xl ${isLow ? 'bg-red-50' : 'bg-slate-50'} min-w-[3.5rem]">
                             <div class="text-lg font-black ${isLow ? 'text-red-500' : 'text-slate-900'} leading-none">${i.quantity}</div>
@@ -190,7 +190,7 @@ export function renderList(div) {
                 <div class="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-brand-500/10 transition-all duration-500">
                     <div class="relative z-10">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Alimentaire</div>
-                        <div class="text-4xl md:text-5xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300">${alim}</div>
+                        <div class="text-3xl md:text-4xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300" data-stat-category="alimentaire">${alim}</div>
                     </div>
                     <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-brand-50 rounded-full group-hover:scale-125 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-500 ease-out"></div>
                     <i data-lucide="utensils" class="absolute right-6 bottom-6 w-8 h-8 text-brand-400 group-hover:rotate-12 transition-transform duration-500"></i>
@@ -200,7 +200,7 @@ export function renderList(div) {
                 <div class="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-500">
                     <div class="relative z-10">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Hygiène</div>
-                        <div class="text-4xl md:text-5xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300">${hyg}</div>
+                        <div class="text-3xl md:text-4xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300" data-stat-category="hygiene">${hyg}</div>
                     </div>
                     <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-purple-50 rounded-full group-hover:scale-125 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-500 ease-out"></div>
                     <i data-lucide="sparkles" class="absolute right-6 bottom-6 w-8 h-8 text-purple-400 group-hover:rotate-12 transition-transform duration-500"></i>
@@ -210,7 +210,7 @@ export function renderList(div) {
                 <div class="bg-white p-5 md:p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-500">
                     <div class="relative z-10">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Vêtements</div>
-                        <div class="text-4xl md:text-5xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300">${vet}</div>
+                        <div class="text-3xl md:text-4xl font-black text-slate-900 group-hover:scale-105 transition-transform origin-left duration-300" data-stat-category="vetements">${vet}</div>
                     </div>
                     <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-indigo-50 rounded-full group-hover:scale-125 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-500 ease-out"></div>
                     <i data-lucide="shirt" class="absolute right-6 bottom-6 w-8 h-8 text-indigo-400 group-hover:rotate-12 transition-transform duration-500"></i>
@@ -220,7 +220,7 @@ export function renderList(div) {
                  <div class="hidden md:block bg-gradient-to-br from-slate-800 to-slate-900 p-5 md:p-6 rounded-[2rem] shadow-lg relative overflow-hidden group">
                      <div class="relative z-10 text-white">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Total Produits</div>
-                        <div class="text-4xl md:text-5xl font-black group-hover:scale-105 transition-transform origin-left duration-300">${alim + hyg + vet}</div>
+                        <div class="text-3xl md:text-4xl font-black group-hover:scale-105 transition-transform origin-left duration-300" data-stat-category="total">${alim + hyg + vet}</div>
                     </div>
                     <i data-lucide="package" class="absolute right-6 bottom-6 w-8 h-8 text-slate-700 group-hover:text-slate-600 transition-colors"></i>
                 </div>

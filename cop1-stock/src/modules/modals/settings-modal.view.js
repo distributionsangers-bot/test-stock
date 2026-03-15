@@ -5,6 +5,7 @@
 import { state } from '../../core/state.js';
 import { supabaseClient } from '../../services/supabase.js';
 import { createBackup, restoreBackup, deleteBackup, addToSettingList, removeFromSettingList } from '../../services/settings.js';
+import { escapeHtml } from '../../services/utils.js';
 import { createIcons, icons } from 'lucide';
 
 // Expose globalement
@@ -57,8 +58,8 @@ function renderSettingsSection(title, listName, placeholder) {
         ? `<div class="text-xs text-slate-400 italic py-2">Aucun élément</div>`
         : list.map(item => `
             <div class="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-lg group hover:bg-slate-100 transition">
-                <span class="text-sm font-medium text-slate-700">${item}</span>
-                <button onclick="removeFromSettingList(${safeListName}, '${item.replace(/'/g, "\\'")}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition">
+                <span class="text-sm font-medium text-slate-700">${escapeHtml(item)}</span>
+                <button onclick="removeFromSettingList(${safeListName}, '${escapeHtml(item).replace(/'/g, "\\'")}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -173,7 +174,7 @@ async function loadBackups() {
         container.innerHTML = data.map(b => `
             <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-amber-100">
                 <div>
-                    <div class="font-bold text-sm text-slate-900">${b.name}</div>
+                    <div class="font-bold text-sm text-slate-900">${escapeHtml(b.name)}</div>
                     <div class="text-[10px] text-slate-400">${new Date(b.created_at).toLocaleString('fr-FR')}</div>
                 </div>
                 <div class="flex gap-2">

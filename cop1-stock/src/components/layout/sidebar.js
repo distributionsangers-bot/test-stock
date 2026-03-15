@@ -62,7 +62,7 @@ export function renderSidebar() {
         <aside id="sidebar" class="hidden md:flex w-72 flex-col fixed inset-y-0 left-0 bg-white/80 backdrop-blur-xl border-r border-slate-200/50 z-50 flex-shrink-0 h-full shadow-xl shadow-slate-200/50">
             <!-- Header avec Logo -->
             <div class="h-20 flex items-center gap-3 px-6 flex-shrink-0 border-b border-slate-100/50">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center">
                     <img src="${LOGO_URL}" class="h-6 w-auto" alt="Logo COP1">
                 </div>
                 <div>

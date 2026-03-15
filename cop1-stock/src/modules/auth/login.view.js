@@ -68,6 +68,37 @@ export function renderLogin() {
                                 <i data-lucide="eye" class="w-5 h-5"></i>
                             </button>
                         </div>
+                        
+                        ${isRegister ? `
+                        <!-- Password Strength Indicator -->
+                        <div id="password-strength-container" class="hidden mt-3 p-3 bg-slate-50/80 rounded-xl border border-slate-100 space-y-2.5 animate-fade-in">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Force du mot de passe</span>
+                                <span id="password-strength-label" class="text-[10px] font-bold uppercase tracking-wide text-slate-400">—</span>
+                            </div>
+                            <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div id="password-strength-bar" class="h-full w-0 rounded-full transition-all duration-300 ease-out"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1.5 pt-1">
+                                <div id="req-length" class="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                    <i data-lucide="circle" class="w-3 h-3"></i>
+                                    <span>8 caractères min.</span>
+                                </div>
+                                <div id="req-upper" class="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                    <i data-lucide="circle" class="w-3 h-3"></i>
+                                    <span>1 majuscule</span>
+                                </div>
+                                <div id="req-lower" class="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                    <i data-lucide="circle" class="w-3 h-3"></i>
+                                    <span>1 minuscule</span>
+                                </div>
+                                <div id="req-number" class="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
+                                    <i data-lucide="circle" class="w-3 h-3"></i>
+                                    <span>1 chiffre</span>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
 
                     ${isRegister ? `
@@ -116,6 +147,100 @@ export function renderLogin() {
 
     // VERSION NPM
     createIcons({ icons });
+
+    // Password strength validation (only in register mode)
+    if (isRegister) {
+        setupPasswordStrength();
+    }
+}
+
+function setupPasswordStrength() {
+    const passInput = document.getElementById('password');
+    const strengthContainer = document.getElementById('password-strength-container');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthLabel = document.getElementById('password-strength-label');
+    const reqLength = document.getElementById('req-length');
+    const reqUpper = document.getElementById('req-upper');
+    const reqLower = document.getElementById('req-lower');
+    const reqNumber = document.getElementById('req-number');
+
+    function updateRequirement(el, isValid) {
+        if (!el) return;
+        const existingIcon = el.querySelector('i, svg');
+
+        if (isValid) {
+            el.classList.remove('text-slate-400');
+            el.classList.add('text-green-600');
+            if (existingIcon) {
+                existingIcon.outerHTML = '<i data-lucide="check-circle" class="w-3 h-3"></i>';
+            }
+        } else {
+            el.classList.remove('text-green-600');
+            el.classList.add('text-slate-400');
+            if (existingIcon) {
+                existingIcon.outerHTML = '<i data-lucide="circle" class="w-3 h-3"></i>';
+            }
+        }
+    }
+
+    function checkPasswordStrength(password) {
+        if (!strengthBar || !strengthLabel) return null;
+
+        const checks = {
+            length: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            lower: /[a-z]/.test(password),
+            number: /[0-9]/.test(password)
+        };
+
+        updateRequirement(reqLength, checks.length);
+        updateRequirement(reqUpper, checks.upper);
+        updateRequirement(reqLower, checks.lower);
+        updateRequirement(reqNumber, checks.number);
+
+        // Refresh icons
+        createIcons({ icons, nameAttr: 'data-lucide', attrs: { class: 'w-3 h-3' } });
+
+        const score = Object.values(checks).filter(Boolean).length;
+
+        const configs = [
+            { width: '0%', color: 'bg-slate-300', label: '—', labelColor: 'text-slate-400' },
+            { width: '25%', color: 'bg-red-500', label: 'Faible', labelColor: 'text-red-500' },
+            { width: '50%', color: 'bg-orange-500', label: 'Moyen', labelColor: 'text-orange-500' },
+            { width: '75%', color: 'bg-yellow-500', label: 'Bon', labelColor: 'text-yellow-500' },
+            { width: '100%', color: 'bg-green-500', label: 'Fort', labelColor: 'text-green-600' }
+        ];
+
+        const config = configs[score];
+        strengthBar.className = `h-full rounded-full transition-all duration-300 ease-out ${config.color}`;
+        strengthBar.style.width = config.width;
+        strengthLabel.textContent = config.label;
+        strengthLabel.className = `text-[10px] font-bold uppercase tracking-wide ${config.labelColor}`;
+
+        return checks;
+    }
+
+    if (passInput && strengthContainer) {
+        passInput.addEventListener('focus', () => {
+            strengthContainer.classList.remove('hidden');
+        });
+
+        passInput.addEventListener('input', (e) => {
+            checkPasswordStrength(e.target.value);
+        });
+    }
+
+    // Store validation function globally for form submission check
+    window.checkPasswordStrengthValid = () => {
+        const password = passInput?.value || '';
+        const checks = {
+            length: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            lower: /[a-z]/.test(password),
+            number: /[0-9]/.test(password)
+        };
+        return Object.values(checks).every(Boolean);
+    };
 }
 
 function handleForgotPassword() {

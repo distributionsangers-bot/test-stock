@@ -26,7 +26,7 @@ export function showToast(msg, type = 'success') {
 
     el.innerHTML = `
         <i data-lucide="${s.icon}" class="w-5 h-5 ${s.iconColor} flex-shrink-0"></i>
-        <span class="font-bold text-sm flex-1">${msg}</span>
+        <span class="font-bold text-sm flex-1">${escapeHtml(msg)}</span>
         <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-slate-500 transition">
             <i data-lucide="x" class="w-4 h-4"></i>
         </button>

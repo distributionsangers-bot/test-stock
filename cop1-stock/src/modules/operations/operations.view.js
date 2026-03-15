@@ -3,7 +3,7 @@
 // ==================================================================================
 
 import { state } from '../../core/state.js';
-import { getOpStyle } from '../../services/utils.js';
+import { getOpStyle, escapeHtml } from '../../services/utils.js';
 import { setOpMode, setDistribMode, addOpLine, removeOpLine, updateOpLine, validateOp } from '../../services/operations.js';
 import { createIcons, icons } from 'lucide';
 
@@ -155,10 +155,24 @@ function getCartFormHTML() {
                 else if (line.mainCategory === 'HYGIENE') list = state.hygieneProducts;
                 else if (line.mainCategory === 'VETEMENTS') list = state.clothingProducts;
 
-                const optionsHTML = list.map(s => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${s.replace(/'/g, "\\'")}', true, ${line.id}, false)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${s}</div>`).join('');
+                const optionsHTML = list.map(s => {
+                    // Trouver le produit complet pour afficher son rangement
+                    const fullItem = state.items.find(i => i.name === s && i.category === line.mainCategory);
+                    const subCatText = fullItem && fullItem.sub_category && fullItem.sub_category !== 'Autre' ? ` > ${fullItem.sub_category}` : '';
+                    const pathHtml = fullItem ? `<span class="text-[11px] text-slate-400 font-normal ml-2">— ${line.mainCategory}${subCatText}</span>` : '';
+                    
+                    // On filtre aussi sur le texte complet (nom + chemin)
+                    const searchText = escapeHtml(s) + ' ' + (fullItem ? `${line.mainCategory} ${fullItem.sub_category || ''}` : '');
+
+                    return `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${escapeHtml(s).replace(/'/g, "\\'")}', true, ${line.id}, false)" 
+                        data-search="${escapeHtml(searchText).toLowerCase()}"
+                        class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition flex flex-wrap items-center">
+                        ${escapeHtml(s)} ${pathHtml}
+                    </div>`;
+                }).join('');
 
                 return `
-                        <input id="${inputId}" type="text" value="${line.name}" 
+                        <input id="${inputId}" type="text" value="${escapeHtml(line.name)}" 
                             onfocus="window.openCustomSelect('${listId}')" 
                             oninput="window.updateOpLine(${line.id},'name',this.value,true); window.openCustomSelect('${listId}'); window.filterCustomSelect('${listId}', this.value)" 
                             class="w-full p-3 bg-slate-50 rounded-xl border font-medium focus:border-brand-500 outline-none" 
@@ -184,12 +198,12 @@ function getCartFormHTML() {
         const listId = 'op-loc-list';
         const inputId = 'op-loc-input';
 
-        const optionsHTML = list.map(l => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${l.replace(/'/g, "\\'")}', false, 0, false)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${l}</div>`).join('');
+        const optionsHTML = list.map(l => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${escapeHtml(l).replace(/'/g, "\\'")}', false, 0, false)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${escapeHtml(l)}</div>`).join('');
 
         locInput = `
         <div class="relative custom-select-container">
             <i data-lucide="map-pin" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${c.text} z-10 w-5 h-5"></i>
-            <input id="${inputId}" type="text" value="${state.opInfo}" 
+            <input id="${inputId}" type="text" value="${escapeHtml(state.opInfo)}" 
                 onfocus="window.openCustomSelect('${listId}')" 
                 oninput="state.opInfo=this.value; window.openCustomSelect('${listId}'); window.filterCustomSelect('${listId}', this.value)" 
                 class="w-full pl-12 pr-4 py-3 ${c.bg} rounded-xl border-2 font-bold focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all" 
@@ -197,7 +211,7 @@ function getCartFormHTML() {
             <div id="${listId}" class="custom-dropdown-list hidden absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2">${optionsHTML}</div>
         </div>`;
     } else {
-        locInput = `<input type="text" value="${state.opInfo}" oninput="state.opInfo=this.value" class="w-full p-3 bg-slate-50 rounded-xl border font-medium" placeholder="Informations complémentaires...">`;
+        locInput = `<input type="text" value="${escapeHtml(state.opInfo)}" oninput="state.opInfo=this.value" class="w-full p-3 bg-slate-50 rounded-xl border font-medium" placeholder="Informations complémentaires...">`;
     }
 
     return `<div class="animate-fade-in max-w-lg mx-auto pb-10">

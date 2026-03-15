@@ -4,6 +4,7 @@
 
 import { state } from '../../core/state.js';
 import { saveItem, deleteItem, saveQuickAdd } from '../../services/stock.js';
+import { escapeHtml } from '../../services/utils.js';
 import { createIcons, icons } from 'lucide';
 
 // Expose globalement
@@ -97,7 +98,7 @@ function getBatchesHTML(item) {
                 <span class="text-[10px] font-bold px-2 py-1 rounded-lg ${b.type === 'DLC' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}">${b.type || 'DLC'}</span>
                 <div>
                     <div class="font-bold text-slate-800 text-sm">${new Date(b.date).toLocaleDateString('fr-FR')}</div>
-                    ${b.info ? `<div class="text-[10px] text-slate-400 italic">${b.info}</div>` : ''}
+                    ${b.info ? `<div class="text-[10px] text-slate-400 italic">${escapeHtml(b.info)}</div>` : ''}
                 </div>
             </div>
             <button type="button" onclick="window.removeBatch(${idx})" class="w-8 h-8 bg-red-50 text-red-400 rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -119,12 +120,12 @@ export function renderModal() {
     const listId = "list-modal-name";
     const inputId = "input-modal-name";
 
-    const optionsHTML = suggs.map(s => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${s.replace(/'/g, "\\'")}', false, 0, true)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${s}</div>`).join('');
+    const optionsHTML = suggs.map(s => `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${escapeHtml(s).replace(/'/g, "\\'")}', false, 0, true)" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer text-slate-700 font-semibold text-sm transition">${escapeHtml(s)}</div>`).join('');
     const subCatList = item.mainCategory === 'ALIMENTAIRE' ? state.foodSubcats : item.mainCategory === 'HYGIENE' ? state.hygieneSubcats : state.clothingSubcats;
 
     root.innerHTML = `
-    <div class="modal-backdrop fixed inset-0 bg-slate-900/60 z-[100] flex items-end sm:items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-        <div class="modal-content bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-scale-in">
+    <div class="modal-backdrop fixed inset-0 bg-slate-900/60 z-[100] flex items-end sm:items-center justify-center pb-16 sm:pb-4 px-0 sm:px-4 pt-4 backdrop-blur-sm animate-fade-in" style="padding-bottom: max(4rem, env(safe-area-inset-bottom, 4rem));">
+        <div class="modal-content bg-white w-full sm:max-w-md rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-scale-in" style="max-height: min(85vh, calc(100dvh - 5rem));">
             <div class="relative bg-gradient-to-r from-slate-900 to-slate-800 p-5 flex-shrink-0">
                 <div class="relative z-10 flex justify-between items-start">
                     <div class="min-w-0">
@@ -147,7 +148,7 @@ export function renderModal() {
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Sous-catégorie</label>
                         <div class="relative">
                             <select onchange="window.updateModalData('subCategory', this.value)" class="w-full p-4 bg-white rounded-2xl font-semibold text-slate-900 outline-none border-2 border-slate-100 focus:border-brand-400 appearance-none transition-all">
-                                ${subCatList.map(sc => `<option value="${sc}" ${item.subCategory === sc ? 'selected' : ''}>${sc}</option>`).join('')}
+                                ${subCatList.map(sc => `<option value="${escapeHtml(sc)}" ${item.subCategory === sc ? 'selected' : ''}>${escapeHtml(sc)}</option>`).join('')}
                             </select>
                             <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none"></i>
                         </div>
@@ -156,7 +157,7 @@ export function renderModal() {
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Nom du produit *</label>
                         <div class="relative custom-select-container">
-                            <input id="${inputId}" type="text" value="${item.name}" onfocus="window.openCustomSelect?.('${listId}')" oninput="window.updateModalData('name', this.value); window.openCustomSelect?.('${listId}'); window.filterCustomSelect?.('${listId}', this.value)" class="w-full p-4 bg-white rounded-2xl font-semibold text-slate-900 outline-none border-2 border-slate-100 focus:border-brand-400 placeholder-slate-300 transition-all" placeholder="Ex: Pâtes, Savon..." autocomplete="off">
+                            <input id="${inputId}" type="text" value="${escapeHtml(item.name)}" onfocus="window.openCustomSelect?.('${listId}')" oninput="window.updateModalData('name', this.value); window.openCustomSelect?.('${listId}'); window.filterCustomSelect?.('${listId}', this.value)" class="w-full p-4 bg-white rounded-2xl font-semibold text-slate-900 outline-none border-2 border-slate-100 focus:border-brand-400 placeholder-slate-300 transition-all" placeholder="Ex: Pâtes, Savon..." autocomplete="off">
                             <div id="${listId}" class="custom-dropdown-list hidden absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2">${optionsHTML}</div>
                         </div>
                     </div>
@@ -166,7 +167,7 @@ export function renderModal() {
                         <div><label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Alerte min.</label><input type="number" value="${item.minThreshold}" oninput="window.updateModalData('minThreshold', this.value)" class="w-full p-4 bg-white rounded-2xl font-bold text-slate-900 outline-none border-2 border-slate-100 focus:border-brand-400 text-center transition-all"></div>
                     </div>
 
-                    <div><label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Note / Info</label><input type="text" value="${item.remarks || ''}" oninput="window.updateModalData('remarks', this.value)" class="w-full p-4 bg-white rounded-2xl font-medium text-sm text-slate-700 outline-none border-2 border-slate-100 focus:border-brand-400 transition-all" placeholder="Ex: Sans gluten..."></div>
+                    <div><label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Note / Info</label><input type="text" value="${escapeHtml(item.remarks || '')}" oninput="window.updateModalData('remarks', this.value)" class="w-full p-4 bg-white rounded-2xl font-medium text-sm text-slate-700 outline-none border-2 border-slate-100 focus:border-brand-400 transition-all" placeholder="Ex: Sans gluten..."></div>
 
                     <div class="bg-white p-4 rounded-2xl border-2 border-slate-100">
                         <div class="flex items-center gap-2 mb-4"><div class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center"><i data-lucide="calendar-clock" class="w-4 h-4 text-brand-600"></i></div><span class="text-sm font-bold text-slate-700">Dates & Péremptions</span></div>

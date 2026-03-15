@@ -1,13 +1,15 @@
 // ==================================================================================
-// SERVICE HISTORIQUE - VERSION NPM LUCIDE
+// SERVICE HISTORIQUE - VERSION REFACTORISÉE
 // ==================================================================================
 
 import { supabaseClient } from './supabase.js';
 import { state } from '../core/state.js';
-import { createIcons, icons } from 'lucide';
 
+/**
+ * Enregistre une entrée dans l'historique
+ */
 export async function logHistory(name, action, qty) {
-    if (!state.user) return; // Sécurité si user déconnecté
+    if (!state.user) return;
     const { error } = await supabaseClient.from('history').insert([{
         item_name: name,
         action: action,
@@ -19,62 +21,41 @@ export async function logHistory(name, action, qty) {
     if (error) console.error("Erreur historique:", error);
 }
 
+/**
+ * Groupe les entrées d'historique par date/action/location
+ * Ne fait PAS de filtrage - c'est la responsabilité de Supabase
+ */
 export function processHistoryGroups(historyList) {
-    // Filtrage
-    const f = state.histFilter;
-    const filtered = historyList.filter(h => {
-        const d = new Date(h.created_at);
-        // Filtre Année
-        if (f.year && d.getFullYear().toString() !== f.year) return false;
-        // Filtre Mois
-        if (f.month && (d.getMonth() + 1).toString() !== f.month) return false;
-        // Filtre Dates
-        if (f.dateFrom && new Date(f.dateFrom) > d) return false;
-        if (f.dateTo && new Date(f.dateTo) < d) return false;
-        // Filtre Texte
-        if (f.search) {
-            const searchStr = (h.action + ' ' + (h.location || '') + ' ' + h.item_name).toLowerCase();
-            if (!searchStr.includes(f.search.toLowerCase())) return false;
-        }
-        return true;
-    });
-
-    // Groupement
     const groups = {};
-    filtered.forEach(h => {
+
+    historyList.forEach(h => {
         const dateKey = new Date(h.created_at).toLocaleDateString();
         const loc = h.location || '';
         // Normalisation des actions pour l'affichage groupé
-        let displayAction = (h.action === 'Distribution' || h.action === 'Retour Distrib') ? 'Distribution' : h.action;
+        const displayAction = (h.action === 'Distribution' || h.action === 'Retour Distrib') ? 'Distribution' : h.action;
 
         const key = `${dateKey}_${displayAction}_${loc}`;
-        if (!groups[key]) groups[key] = { date: dateKey, fullDate: h.created_at, action: displayAction, location: loc, items: [] };
+        if (!groups[key]) {
+            groups[key] = {
+                date: dateKey,
+                fullDate: h.created_at,
+                action: displayAction,
+                location: loc,
+                items: []
+            };
+        }
         groups[key].items.push(h);
     });
-    state.groupedHistory = Object.values(groups).sort((a, b) => new Date(b.fullDate) - new Date(a.fullDate));
+
+    state.groupedHistory = Object.values(groups).sort((a, b) =>
+        new Date(b.fullDate) - new Date(a.fullDate)
+    );
 }
 
-export async function setHistFilter(key, val) {
-    state.histFilter[key] = val;
-    // On recalcule les groupes
-    processHistoryGroups(state.history);
-    // On met à jour uniquement la liste
-    const container = document.getElementById('history-results-container');
-    if (container) {
-        // Redirige vers la nouvelle méthode de rendu qui gérera la pagination si nécessaire
-        // Pour l'instant, on recharge juste la vue actuelle
-        const { renderHist } = await import('../modules/history/history.view.js');
-        // Note: renderHist is generic, we might need a specific refresh function
-        // But for filter updates, we usually reset to page 1. 
-        // We will handle this in the view layer calling setHistFilter.
-        // Actually, setHistFilter is called by the view.
-
-        // Let's NOT trigger a full render here, but dispatch an event or let the view handle it.
-        // For now, let's just dispatch a custom event that the view can listen to, or simpler:
-        // The view calls setHistFilter, then it should re-fetch data.
-    }
-}
-
+/**
+ * Récupère l'historique avec filtres côté Supabase
+ * Logique de priorité : dateFrom/dateTo > year/month
+ */
 export async function getHistory(page = 1, limit = 20, filters = {}) {
     try {
         const from = (page - 1) * limit;
@@ -84,40 +65,36 @@ export async function getHistory(page = 1, limit = 20, filters = {}) {
             .from('history')
             .select('*', { count: 'exact' });
 
-        // Filtres
-        if (filters.search) {
-            query = query.or(`item_name.ilike.%${filters.search}%,action.ilike.%${filters.search}%,user_email.ilike.%${filters.search}%`);
+        // Filtre recherche texte
+        if (filters.search && filters.search.trim()) {
+            const searchTerm = filters.search.trim();
+            query = query.or(`item_name.ilike.%${searchTerm}%,action.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,user_email.ilike.%${searchTerm}%`);
         }
 
-        // Date filters
-        if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
-        if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
+        // PRIORITÉ : Si dates précises sont définies, on les utilise EXCLUSIVEMENT
+        const hasDateRange = filters.dateFrom || filters.dateTo;
 
-        // Month/Year shortcut filters
-        if (filters.year) {
-            const startYear = `${filters.year}-01-01`;
-            const endYear = `${filters.year}-12-31`;
-            query = query.gte('created_at', startYear).lte('created_at', endYear);
-        }
-
-        if (filters.month && filters.year) {
-            // Calculate start and end of month
-            const m = filters.month.padStart(2, '0');
-            const startDate = `${filters.year}-${m}-01`;
-            // Get last day of month
-            const lastDay = new Date(filters.year, filters.month, 0).getDate();
-            const endDate = `${filters.year}-${m}-${lastDay}`;
-
-            query = query.gte('created_at', startDate).lte('created_at', endDate);
-        } else if (filters.month && !filters.year) {
-            // If only month is selected, assume current year or handle differently? 
-            // Usually UI enforces Year if Month is selected, or we defaults to current year.
-            const currentYear = new Date().getFullYear();
-            const m = filters.month.padStart(2, '0');
-            const startDate = `${currentYear}-${m}-01`;
-            const lastDay = new Date(currentYear, filters.month, 0).getDate();
-            const endDate = `${currentYear}-${m}-${lastDay}`;
-            query = query.gte('created_at', startDate).lte('created_at', endDate);
+        if (hasDateRange) {
+            // Utiliser les dates précises uniquement
+            if (filters.dateFrom) {
+                query = query.gte('created_at', `${filters.dateFrom}T00:00:00`);
+            }
+            if (filters.dateTo) {
+                query = query.lte('created_at', `${filters.dateTo}T23:59:59`);
+            }
+        } else {
+            // Sinon, utiliser year/month
+            if (filters.year && filters.month) {
+                const m = filters.month.toString().padStart(2, '0');
+                const lastDay = new Date(parseInt(filters.year), parseInt(filters.month), 0).getDate();
+                query = query
+                    .gte('created_at', `${filters.year}-${m}-01T00:00:00`)
+                    .lte('created_at', `${filters.year}-${m}-${lastDay}T23:59:59`);
+            } else if (filters.year) {
+                query = query
+                    .gte('created_at', `${filters.year}-01-01T00:00:00`)
+                    .lte('created_at', `${filters.year}-12-31T23:59:59`);
+            }
         }
 
         query = query
@@ -134,4 +111,30 @@ export async function getHistory(page = 1, limit = 20, filters = {}) {
         console.error("Erreur chargement historique:", error);
         return { data: [], count: 0, error };
     }
+}
+
+/**
+ * Compte les filtres actifs pour l'indicateur visuel
+ */
+export function countActiveFilters(filters) {
+    let count = 0;
+    if (filters.search && filters.search.trim()) count++;
+    if (filters.dateFrom) count++;
+    if (filters.dateTo) count++;
+    if (filters.year && !filters.dateFrom && !filters.dateTo) count++;
+    if (filters.month && !filters.dateFrom && !filters.dateTo) count++;
+    return count;
+}
+
+/**
+ * Réinitialise tous les filtres
+ */
+export function resetHistFilters() {
+    state.histFilter = {
+        year: '',
+        month: '',
+        dateFrom: '',
+        dateTo: '',
+        search: ''
+    };
 }

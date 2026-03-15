@@ -22,7 +22,8 @@ export function filterCustomSelect(listId, text) {
 
     let count = 0;
     options.forEach(opt => {
-        const val = normalizeText(opt.innerText);
+        // Use data-search if available (contains normalized text of name + category path), else fallback to innerText
+        const val = opt.hasAttribute('data-search') ? opt.getAttribute('data-search') : normalizeText(opt.innerText);
         if (val.includes(search)) {
             opt.classList.remove('hidden');
             count++;
