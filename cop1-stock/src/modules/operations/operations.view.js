@@ -158,11 +158,11 @@ function getCartFormHTML() {
                 const optionsHTML = list.map(s => {
                     // Trouver le produit complet pour afficher son rangement
                     const fullItem = state.items.find(i => i.name === s && i.category === line.mainCategory);
-                    const subCatText = fullItem && fullItem.sub_category && fullItem.sub_category !== 'Autre' ? ` > ${fullItem.sub_category}` : '';
-                    const pathHtml = fullItem ? `<span class="text-[11px] text-slate-400 font-normal ml-2">— ${line.mainCategory}${subCatText}</span>` : '';
+                    const subCatText = fullItem && fullItem.sub_category && fullItem.sub_category !== 'Autre' ? fullItem.sub_category : '';
+                    const pathHtml = subCatText ? `<span class="text-[11px] text-slate-400 font-normal ml-2">— ${subCatText}</span>` : '';
                     
                     // On filtre aussi sur le texte complet (nom + chemin)
-                    const searchText = escapeHtml(s) + ' ' + (fullItem ? `${line.mainCategory} ${fullItem.sub_category || ''}` : '');
+                    const searchText = escapeHtml(s) + ' ' + (fullItem ? fullItem.sub_category || '' : '');
 
                     return `<div onclick="window.selectCustomOption('${listId}', '${inputId}', '${escapeHtml(s).replace(/'/g, "\\'")}', true, ${line.id}, false)" 
                         data-search="${escapeHtml(searchText).toLowerCase()}"
