@@ -27,23 +27,23 @@ function getMainMenuHTML() {
                 </div>
             </div>
 
-            <button onclick="setOpMode('DISTRIB')" class="w-full bg-gradient-to-br from-orange-400 to-orange-600 p-6 rounded-3xl flex items-center gap-5 shadow-xl shadow-orange-500/30 hover:scale-[1.02] transition-all mb-4 group">
-                <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition">
+            <button onclick="setOpMode('DISTRIB')" class="w-full bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-5 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all mb-4 group">
+                <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
                     <i data-lucide="shopping-bag" class="w-8 h-8"></i>
                 </div>
-                <div class="text-left text-white">
-                    <span class="block text-2xl font-black uppercase">Distribution</span>
-                    <span class="text-sm text-orange-100/80">Sortie & Retour de produits</span>
+                <div class="text-left">
+                    <span class="block text-2xl font-black uppercase text-slate-800">Distribution</span>
+                    <span class="text-sm text-slate-500 font-medium">Sortie & Retour de produits</span>
                 </div>
             </button>
 
-            <button onclick="setOpMode('COLLECTE')" class="w-full bg-gradient-to-br from-emerald-400 to-emerald-600 p-5 rounded-2xl flex items-center gap-4 shadow-lg hover:scale-[1.02] transition-all mb-4 group">
-                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white group-hover:scale-110 transition">
+            <button onclick="setOpMode('COLLECTE')" class="w-full bg-white p-5 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all mb-4 group">
+                <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
                     <i data-lucide="check-circle" class="w-6 h-6"></i>
                 </div>
-                <div class="text-left text-white">
-                    <span class="block text-xl font-bold">Collecte</span>
-                    <span class="text-sm text-emerald-100/80">Récupération de dons</span>
+                <div class="text-left">
+                    <span class="block text-xl font-bold text-slate-800">Collecte</span>
+                    <span class="text-sm text-slate-500 font-medium">Récupération de dons</span>
                 </div>
             </button>
 
